@@ -1,12 +1,19 @@
-# Flask-Firebase
+# Flask-Firebase-Auth
 
-Google Firebase integration for Flask. At this moment,
+Google Firebase Authentication integration for Flask. At this moment,
 only the authentication subsystem is supported.
 
 The extension works in two modes: development and production.
 In development, there is no communication with the Firebase
 system, accounts sign-in with a simple email form. The mode
 depends on the `Flask.debug` variable.
+
+## Install
+
+```
+$pip install git+https://github.com/jp-96/flask-firebase-auth
+```
+
 
 ## Configuration
 
@@ -24,66 +31,97 @@ depends on the `Flask.debug` variable.
 
 ## Sample code
 
-```python
-from flask import Flask, request
-from flask_firebase import FirebaseAuth
-from flask_login import LoginManager, UserMixin, login_user, logout_user
-from flask_sqlalchemy import SQLAlchemy
+filename:main.py
 
+``` python:main.py
+# coding: utf-8
+
+from flask import Flask, request, redirect, Response
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_firebase_auth import FirebaseAuth
 
 app = Flask(__name__)
-app.config.from_object(...)
+app.config['SECRET_KEY'] = "secret"
 
-db = SQLAlchemy(app)
+app.config['FIREBASE_API_KEY'] = '<The API key>'
+app.config['FIREBASE_PROJECT_ID'] = '<The project identifier, eg. `foobar`>'
+app.config['FIREBASE_AUTH_SIGN_IN_OPTIONS'] = 'email,facebook,github,google,twitter' #Comma-separated list of enabled providers.
+
+login_manager = LoginManager()
+login_manager.init_app(app)
 auth = FirebaseAuth(app)
-login_manager = LoginManager(app)
-
 app.register_blueprint(auth.blueprint, url_prefix='/auth')
 
+class User(UserMixin):
+    # user database
+    users = {
+        'user01@your.domain': {'name': 'debug01'},
+        'user02@your.domain': {'name': 'debug02'},
+        'user03@your.domain': {'name': 'debug03'},
+        'user04@your.domain': {'name': 'debug04'},
+    }
 
-class Account(UserMixin, db.Model):
-
-    __tablename__ = 'accounts'
-
-    account_id = db.Column(db.Integer, primary_key=True)
-    firebase_user_id = db.Column(db.Text, unique=True)
-    email = db.Column(db.Text, unique=True, nullable=False)
-    email_verified = db.Column(db.Boolean, default=False, nullable=False)
-    name = db.Column(db.Text)
-    photo_url = db.Column(db.Text)
-
+    def __init__(self, id, name):
+        self.id = id
+        self.name = name
+    
+    @classmethod
+    def get(self, id):
+        user = self.users.get(id)
+        if user is not None:
+            return User(id, user['name'])
 
 @auth.production_loader
-def production_sign_in(token):
-    account = Account.query.filter_by(firebase_user_id=token['sub']).one_or_none()
-    if account is None:
-        account = Account(firebase_user_id=token['sub'])
-        db.session.add(account)
-    account.email = token['email']
-    account.email_verified = token['email_verified']
-    account.name = token.get('name')
-    account.photo_url = token.get('picture')
-    db.session.flush()
-    login_user(account)
-    db.session.commit()
+def production_loader(token):
+    user = User.get(token['email'])
+    if user is not None:
+        login_user(user, True)
 
 
 @auth.development_loader
-def development_sign_in(email):
-    login_user(Account.query.filter_by(email=email).one())
-
+def development_loader(email):
+    user = User.get(email)
+    if user is not None:
+        login_user(user, True)
 
 @auth.unloader
 def sign_out():
     logout_user()
 
-
 @login_manager.user_loader
-def load_user(account_id):
-    return Account.query.get(account_id)
+def user_loader(user_id):
+    return User.get(user_id)
 
+@login_manager.request_loader
+def request_loader(request):
+    token = request.headers.get('Authorization')
+    if token is None:
+        token = request.args.get('token')
+    return User.get(token)
 
 @login_manager.unauthorized_handler
 def authentication_required():
-    return auth.url_for('widget', mode='select', next=request.url)
+    return redirect(auth.url_for('widget', mode='select', next=request.url))
+
+@app.route('/')
+def homepage():
+    return Response("home: <a href='/login/'>Login</a> <a href='/protected/'>Protected</a> <a href='/logout/'>Logout</a>")
+
+@app.route('/login/')
+@login_required
+def login():
+    return redirect("/")
+
+@app.route('/logout/')
+def logout():
+    return auth.sign_out()
+
+@app.route('/protected/')
+@login_required
+def protected():
+    return Response("<h1>Protected Page</h1><a href='/logout/'>Logout</a><br />" + current_user.name)
+
+if __name__ == '__main__':
+    auth.debug = True
+    app.run(debug=True)
 ```
