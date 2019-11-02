@@ -1,4 +1,4 @@
-# Flask-Firebase-Auth
+# Flask-FirebaseAuth
 
 Google Firebase Authentication integration for Flask. At this moment,
 only the authentication subsystem is supported.
@@ -11,7 +11,7 @@ depends on the `Flask.debug` variable.
 ## Install
 
 ```
-$pip install git+https://github.com/jp-96/flask-firebase-auth
+$pip install git+https://github.com/jp-96/Flask-FirebaseAuth
 ```
 
 
