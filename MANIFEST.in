@@ -1,1 +1,1 @@
-graft flask_firebase/templates
+graft flask_firebaseauth/templates
