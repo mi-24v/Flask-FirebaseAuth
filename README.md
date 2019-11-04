@@ -11,7 +11,7 @@ depends on the `Flask.debug` variable.
 ## Install
 
 ```
-$pip install git+https://github.com/jp-96/Flask-FirebaseAuth
+$pip install git+https://github.com/jp-96/Flask-FirebaseAuth.git
 ```
 
 

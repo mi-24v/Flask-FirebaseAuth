@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='Flask-FirebaseAuth',
-    version='1.7.1',
+    version='0.1.0',
     description='Google Firebase Authentication integration for Flask',
     packages=['flask_firebaseauth'],
     include_package_data=True,
