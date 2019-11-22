@@ -94,14 +94,15 @@ class FirebaseAuth:
             **values)
 
     def widget(self):
-        next_ = self.verify_redirection()
+        next_ , params_ = self.verify_redirection()
         if self.debug and request.method == 'POST':
             self.development_load_callback(request.form['email'])
             return redirect(next_)
-        return render_template('firebase_auth/widget.html', firebase_auth=self)
+        return render_template('firebase_auth/widget.html', firebase_auth=self, redirect_params=params_)
 
     def sign_in(self):
         header = jwt.get_unverified_header(request.data)
+        params = request.args
         with self.lock:
             self.refresh_keys()
             key = self.keys[header['kid']]
@@ -110,7 +111,7 @@ class FirebaseAuth:
             key=key,
             audience=self.project_id,
             algorithms=['RS256'])
-        self.production_load_callback(token)
+        self.production_load_callback(token, params)
         return 'OK'
 
     def sign_out(self):
@@ -119,12 +120,14 @@ class FirebaseAuth:
 
     def verify_redirection(self):
         next = request.args.get('next') or request.url_root
+        params = request.args
+        params.pop("next", None)
         if not self.debug:
             next_domain = urlparse(next).hostname.split('.')[-2:]
             this_domain = urlparse(request.url).hostname.split('.')[-2:]
             if next_domain != this_domain:
                 abort(400)
-        return next
+        return next, params
 
     def refresh_keys(self):
         now = monotonic()

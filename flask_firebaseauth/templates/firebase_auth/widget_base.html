@@ -25,7 +25,7 @@ ui.start("#firebaseui-auth-container", {
     signInSuccess: function(user, credential, redirectUrl) {
       user.getIdToken().then(function(token) {
         var xhr = new XMLHttpRequest();
-        xhr.open("POST", "{{ firebase_auth.url_for('sign_in') }}", true);
+        xhr.open("POST", "{{ firebase_auth.url_for('sign_in', redirect_params) }}", true);
         xhr.setRequestHeader("Content-Type", "application/jwt");
         xhr.onreadystatechange = function() {
           if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
