@@ -120,7 +120,7 @@ class FirebaseAuth:
 
     def verify_redirection(self):
         next = request.args.get('next') or request.url_root
-        params = request.args
+        params = request.args.to_dict(flat=False)
         params.pop("next", None)
         if not self.debug:
             next_domain = urlparse(next).hostname.split('.')[-2:]
