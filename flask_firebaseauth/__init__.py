@@ -102,7 +102,7 @@ class FirebaseAuth:
 
     def sign_in(self):
         header = jwt.get_unverified_header(request.data)
-        params = request.args
+        params = request.args["redirect_params"]
         with self.lock:
             self.refresh_keys()
             key = self.keys[header['kid']]
